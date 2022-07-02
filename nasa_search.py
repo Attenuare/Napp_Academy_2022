@@ -94,6 +94,22 @@ def get_all_information(choice: str):
     return links_all_information
 
 
+def firt_decision(choice: str):
+    print(f'Perfeito! Trazei as imagens de {choice.title()} da Nasa!')
+    images = get_all_result_search(choice=choice.lower())
+    with open(f'{choice.title()}_images.csv', 'a', encoding='utf8', newline='') as csv_file:
+        writer = csv.writer(csv_file)
+        [writer.writerow([image]) for image in images]
+    print(f'Pronto! Arquivo .csv criado com as imagens de {choice.title()}!')
+
+
+def second_decision(choice: str):
+    print(f'Perfeito! Trazei as imagens e descrições de {choice} da Nasa!')
+    information_frame = get_all_information(choice)
+    information_frame.to_csv(f'{choice.title()}_information.csv', index=False)
+    print(f'Pronto! Arquivo .csv criado com as informações de {choice.title()}!')
+
+
 if __name__ == '__main__':
     print(10 * '-', 'Bem vindo a NasaSearch!', 10 * '-')
     decision = ''
@@ -106,17 +122,9 @@ if __name__ == '__main__':
             if option != 1 and option != 2:
                 print("Opção inválida, tente novamente!\n")
         if option == 1:
-            print(f'Perfeito! Trazei as imagens de {choice.title()} da Nasa!')
-            images = get_all_result_search(choice=choice.lower())
-            with open(f'{choice.title()}_images.csv', 'a', encoding='utf8', newline='') as csv_file:
-                writer = csv.writer(csv_file)
-                [writer.writerow([image]) for image in images]
-            print(f'Pronto! Arquivo .csv criado com as imagens de {choice.title()}!')
+            firt_decision(choice)
         if option == 2:
-            print(f'Perfeito! Trazei as imagens e descrições de {choice} da Nasa!')
-            information_frame = get_all_information(choice)
-            information_frame.to_csv(f'{choice.title()}_information.csv', index=False)
-            print(f'Pronto! Arquivo .csv criado com as informações de {choice.title()}!')
+            second_decision(choice)
         while decision != 1 and decision != 2:
             separation = 10 * '-'
             decision = int(input(f'{separation} Deseja continuar pesquisando no NasaSearch? Sim[1] ou Não[2] {separation}\nEscolha as opções 1 ou 2: '))
