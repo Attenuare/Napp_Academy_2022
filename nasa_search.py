@@ -1,33 +1,37 @@
+from concurrent.futures import ThreadPoolExecutor
+from nasa_headers import headers
 from bs4 import BeautifulSoup
+from pandas import DataFrame
+from pathlib import Path
+from io import BytesIO
+from PIL import Image
 import pandas as pd
 import warnings
 import requests
+import PIL
 import csv
+import os
 
 
-def get_all_result_search(choice: str, option: int = 2):
-    headers = {
-        'Connection': 'keep-alive',
-        'Cache-Control': 'max-age=0',
-        'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="99", "Opera";v="85"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36 OPR/85.0.4341.60',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-User': '?1',
-        'Sec-Fetch-Dest': 'document',
-        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-        'If-None-Match': 'W/"9fc67a49ee13b7b1bb948b41b699b627-gzip"',
-    }
+def get_path(choice: str) -> 'Path':
+    '''Discover the path the script is in to save the images'''
+    my_path = os.getcwd()
+    my_path = my_path.replace('\\', '/')
+    destiny = Path(my_path + f'/{choice}_nasa_images')
+    try:
+        os.mkdir(destiny)
+    except FileExistsError:
+        pass
+    return destiny
 
+
+def get_all_result_search(choice: str, option: int = 2) -> list[str]:
+    '''Get all occurrence links from the first page of search return
+        or save all image links from the results'''
     params = {
         'affiliate': 'nasa',
         'query': choice,
     }
-
     response = requests.get('https://nasasearch.nasa.gov/search/images', params=params, headers=headers)
     soup_response = BeautifulSoup(response.text, 'html.parser')
     all_tag_images = soup_response.find('div', {'class': 'results-wrapper'})
@@ -47,7 +51,10 @@ def get_all_result_search(choice: str, option: int = 2):
     return all_images
 
 
-def get_especific_information(information_index: int, all_links: list):
+def get_especific_information(information_index: int, all_links: list) -> 'DataFrame':
+    '''Get other information from the occurrence, like image name,
+        description and link
+    '''
     try:
         response2 = requests.get(all_links[information_index], timeout=3)
     except:
@@ -84,7 +91,7 @@ def get_especific_information(information_index: int, all_links: list):
     return dataframe_information
 
 
-def get_all_information(choice: str):
+def get_all_information(choice: str) -> 'DataFrame':
     all_links = get_all_result_search(option=1, choice=choice.lower())
     links_all_information = pd.DataFrame(columns=['Título', 'Descrição', 'Imagem'])
     warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -94,7 +101,20 @@ def get_all_information(choice: str):
     return links_all_information
 
 
-def firt_decision(choice: str):
+def downloading_images(image_link: str) -> list['PIL.JpegImagePlugin.JpegImageFile', int]:
+    '''Get a list of images links and download this images 
+    and save in a diretory from the OS
+    '''
+    if image_link.startswith('http'):
+        binary_image = requests.get(image_link)
+        file_image = Image.open(BytesIO(binary_image.content))
+    else:
+        return
+    return [file_image, binary_image.status_code]
+
+
+def first_decision(choice: str) -> None:
+    '''Setting first choice condition getting only the images links'''
     print(f'Perfeito! Trazei as imagens de {choice.title()} da Nasa!')
     images = get_all_result_search(choice=choice.lower())
     with open(f'{choice.title()}_images.csv', 'a', encoding='utf8', newline='') as csv_file:
@@ -103,31 +123,27 @@ def firt_decision(choice: str):
     print(f'Pronto! Arquivo .csv criado com as imagens de {choice.title()}!')
 
 
-def second_decision(choice: str):
+def second_decision(choice: str) -> None:
+    '''Setting second choice condition getting the images links, title and description'''
     print(f'Perfeito! Trazei as imagens e descrições de {choice} da Nasa!')
     information_frame = get_all_information(choice)
     information_frame.to_csv(f'{choice.title()}_information.csv', index=False)
     print(f'Pronto! Arquivo .csv criado com as informações de {choice.title()}!')
 
 
-if __name__ == '__main__':
-    print(10 * '-', 'Bem vindo a NasaSearch!', 10 * '-')
-    decision = ''
-    while decision != 2:
-        decision = ''
-        choice = str(input('Insira em inglês o termo que deseja pesquisar:\n')).strip()
-        option = ''
-        while option != 1 and option != 2:
-            option = int(input(f'Opção [1] - Apenas as imagens de {choice.title()}\nOpção [2] - As imagens e a descrição de {choice.title()}\nOpção: '))
-            if option != 1 and option != 2:
-                print("Opção inválida, tente novamente!\n")
-        if option == 1:
-            firt_decision(choice)
-        if option == 2:
-            second_decision(choice)
-        while decision != 1 and decision != 2:
-            separation = 10 * '-'
-            decision = int(input(f'{separation} Deseja continuar pesquisando no NasaSearch? Sim[1] ou Não[2] {separation}\nEscolha as opções 1 ou 2: '))
-            if decision != 1 and decision != 2:
-                print('\nEscolha inválida, as opções são [1] ou [2], tente novamente!\n')
-    print(10 * '-', 'Obrigado por utilizar NasaSearch!', 10 * '-')
+def third_decision(choice: str) -> None:
+    '''Setting third choice condition downloading the images'''
+    images_control = []
+    my_path = get_path(choice)
+    all_images = get_all_information(choice)
+    all_links_images = list(all_images['Imagem'])
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        number_image = 0
+        for image in all_links_images:
+            if image not in images_control:
+                number_image += 1
+                image_object = downloading_images(image)
+                image_object[0].save(f'{my_path}/{choice}_{number_image}.jpg')
+                print(f'{number_image}º imagem baixada!')
+    print(f'Pronto! As imagens foram baixadas contendo resultados de {choice.title()}!')
+
