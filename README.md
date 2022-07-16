@@ -10,6 +10,6 @@ Como default caso todas as requisições sejam bem sucedidas, é retornado 20 re
 \* Digite o termo em inglês que deseja pesquisar
 
 \* Escolha a opção que deseja ->
-Opção [1] - Apenas as imagens de Earth;
-Opção [2] - As imagens e a descrição de Earth;
-Opção [3] - Efetuar o download das imagens de Earth.
+Opção [1] - Apenas as imagens de `choice`;
+Opção [2] - As imagens e a descrição de `choice`;
+Opção [3] - Efetuar o download das imagens de `choice`.
